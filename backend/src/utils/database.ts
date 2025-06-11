@@ -37,6 +37,22 @@ export async function initDatabase() {
 			)
 			`
 		);
+		await client.query(
+			`
+			CREATE TABLE IF NOT EXISTS Items (
+				id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+				owner_id UUID NOT NULL,
+				parent_id UUID,
+				name VARCHAR(255) NOT NULL,
+				size BIGINT NOT NULL DEFAULT 0,
+				mime VARCHAR(255),
+				is_folder BOOL NOT NULL DEFAULT FALSE,
+
+				CONSTRAINT fk_owner FOREIGN KEY (owner_id) REFERENCES Users(id) ON DELETE CASCADE,
+				CONSTRAINT fk_parent FOREIGN KEY (parent_id) REFERENCES Items(id) ON DELETE CASCADE
+			)
+			`
+		);
 	} catch (err) {
 		logger.error("Failed to initialize database tables!", err);
 		process.exit(1);
