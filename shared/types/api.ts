@@ -4,3 +4,13 @@ export interface User {
   display_name: string;
   password_hash: string;
 }
+
+export interface Item {
+  id: string;
+  owner_id: string;
+  parent_id?: string;
+  name: string;
+  size: number;
+  mime?: string;
+  id_folder: boolean;
+}
