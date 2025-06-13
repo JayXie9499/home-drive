@@ -1,24 +1,25 @@
 import { Pool } from "pg";
+import { createClient } from "@redis/client";
 import { logger } from "./logger";
 
-const pool = new Pool({
-	host: process.env["DB_HOST"],
-	port: parseInt(process.env["DB_PORT"] ?? "5432"),
-	user: process.env["DB_USER"],
-	password: process.env["DB_PASSWORD"],
-	database: process.env["DB_NAME"]
+const pgPool = new Pool({
+	host: process.env["POSTGRES_HOST"],
+	port: parseInt(process.env["POSTGRES_PORT"] ?? "5432"),
+	user: process.env["POSTGRES_USER"],
+	password: process.env["POSTGRES_PASSWORD"],
+	database: process.env["POSTGRES_NAME"]
 });
 
-pool.on("connect", () => logger.info("New pg client connected."));
-pool.on("release", () => logger.info("Released a pg client."));
-pool.on("error", (err) => logger.error("Error occurred on pg client.", err));
+pgPool.on("connect", () => logger.info("New pg client connected."));
+pgPool.on("release", () => logger.info("Released a pg client."));
+pgPool.on("error", (err) => logger.error("Error occurred on pg client.", err));
 
-export function connectDatabase() {
-	return pool.connect();
+export function connectPostgres() {
+	return pgPool.connect();
 }
 
-export async function initDatabase() {
-	const client = await connectDatabase().catch((err) => {
+export async function initPostgres() {
+	const client = await connectPostgres().catch((err) => {
 		logger.error("Unable to connect database!", err);
 	});
 
@@ -58,4 +59,24 @@ export async function initDatabase() {
 		process.exit(1);
 	}
 	client.release();
+}
+
+export const redisClient = createClient({
+	RESP: 3,
+	clientSideCache: {
+		ttl: 30 * 24 * 60 * 60 * 1000
+	},
+	socket: {
+		host: process.env["REDIS_HOST"],
+		port: parseInt(process.env["REDIS_PORT"] ?? "6379")
+	},
+	username: process.env["REDIS_USER"],
+	password: process.env["REDIS_PASSWORD"]
+});
+
+export async function initRedis() {
+	redisClient.on("error", (err) =>
+		logger.error("Error occurred on redis client.", err)
+	);
+	await redisClient.connect();
 }
