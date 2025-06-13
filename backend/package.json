@@ -1,7 +1,7 @@
 {
 	"packageManager": "pnpm@10.12.1",
 	"name": "backend",
-	"version": "1.0.0",
+	"version": "0.1.0",
 	"main": "build/app.js",
 	"engines": {
 		"node": "^22.16.0"
