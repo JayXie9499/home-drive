@@ -12,6 +12,8 @@ const port = process.env["PORT"] ?? 3000;
 app.use(cookieParser(process.env["COOKIE_SECRET"]));
 app.use("/auth", authRoute);
 
-app.listen(port, () => {
+app.listen(port, async () => {
+	await initPostgres();
+	await initRedis();
 	logger.info(`Listening on port: ${port}`);
 });
