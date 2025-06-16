@@ -1,0 +1,70 @@
+import argon2 from "argon2";
+import { connectPostgres } from "../utils/database";
+import {
+	generateAccessToken,
+	generateRefreshToken,
+	resolveExpirationSec
+} from "../utils/jwt";
+import { logger } from "../utils/logger";
+import type { Request, Response } from "express";
+import type { User } from "@shared/types/api";
+
+export async function loginUser(req: Request, res: Response) {
+	const { username, password } = req.body;
+
+	if (!username || !password) {
+		res.status(400).json({ message: "Username and password are required" });
+		return;
+	}
+
+	const postgres = await connectPostgres();
+	const result = await postgres.query(
+		`
+    SELECT * FROM Users
+    WHERE username = $1
+    `,
+		[username]
+	);
+
+	if (!result.rowCount) {
+		res.status(401).json({ message: "User doesn't exist" });
+		return;
+	}
+
+	const user: User = result.rows[0];
+	const pwdMatch = await argon2.verify(user.password_hash, password);
+
+	if (!pwdMatch) {
+		res.status(401).json({ message: "Wrong password" });
+		return;
+	}
+
+	const accessToken = await generateAccessToken({
+		id: user.id,
+		username: user.username,
+		display_name: user.display_name
+	});
+	const refreshToken = await generateRefreshToken(user.id).catch((err) => {
+		logger.error("Failed to generate refresh token", err);
+	});
+
+	if (!refreshToken) {
+		res.status(500).json({ message: "Unknown error occurred" });
+		return;
+	}
+
+	res
+		.status(200)
+		.cookie("REFRESH_TOKEN", refreshToken, {
+			httpOnly: true,
+			secure: process.env["NODE_ENV"] === "production",
+			sameSite: true,
+			maxAge:
+				resolveExpirationSec(process.env["JWT_REFRESH_TOKEN_EXP"]!)! * 1000,
+			signed: true
+		})
+		.json({
+			message: "Successfully logged in",
+			data: { access_token: accessToken }
+		});
+}
