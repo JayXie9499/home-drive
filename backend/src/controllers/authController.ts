@@ -1,5 +1,5 @@
 import argon2 from "argon2";
-import { connectPostgres } from "../utils/database";
+import { connectPostgres, redisClient } from "../utils/database";
 import {
 	generateAccessToken,
 	generateRefreshToken,
@@ -67,4 +67,19 @@ export async function loginUser(req: Request, res: Response) {
 			message: "Successfully logged in",
 			data: { access_token: accessToken }
 		});
+}
+
+export async function logoutUser(req: Request, res: Response) {
+	const refreshToken = req.signedCookies["REFRESH_TOKEN"];
+
+	if (!refreshToken) {
+		res.status(400).json({ message: "You're not logged in" });
+		return;
+	}
+
+	await redisClient.del(`refresh_token:${refreshToken}`);
+	res
+		.clearCookie("REFRESH_TOKEN")
+		.status(200)
+		.json({ message: "Successfully logged out" });
 }
