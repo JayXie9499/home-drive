@@ -10,7 +10,11 @@ if (
 	!env["POSTGRES_NAME"]?.length ||
 	!env["REDIS_HOST"]?.length ||
 	!env["REDIS_USER"]?.length ||
-	!env["REDIS_PASSWORD"]?.length
+	!env["REDIS_PASSWORD"]?.length ||
+	!env["JWT_SECRET"]?.length ||
+	!env["JWT_ACCESS_TOKEN_EXP"]?.length ||
+	!env["JWT_REFRESH_TOKEN_EXP"]?.length ||
+	!env["COOKIE_SECRET"]?.length
 ) {
 	logger.error("Setup environment variables properly before starting the app.");
 	process.exit(1);
