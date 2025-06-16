@@ -10,7 +10,8 @@
 		"sourceMap": true,
 		"strict": true,
 		"moduleResolution": "bundler",
-		"baseUrl": ".",
+		"rootDir": "../",
+		"baseUrl": "./",
 		"paths": {
 			"@shared/*": ["../shared/*"]
 		}
