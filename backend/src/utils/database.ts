@@ -32,7 +32,7 @@ export async function initPostgres() {
 			`
 			CREATE TABLE IF NOT EXISTS Users (
 				id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-				username VARCHAR(30) NOT NULL,
+				username VARCHAR(30) UNIQUE NOT NULL,
 				display_name VARCHAR(50),
 				password_hash TEXT NOT NULL
 			)
