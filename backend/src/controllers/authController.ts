@@ -3,7 +3,8 @@ import { connectPostgres, redisClient } from "../utils/database";
 import {
 	generateAccessToken,
 	generateRefreshToken,
-	resolveExpirationSec
+	resolveExpirationSec,
+	verifyRefreshToken
 } from "../utils/jwt";
 import { logger } from "../utils/logger";
 import type { Request, Response } from "express";
@@ -61,7 +62,7 @@ export async function loginUser(req: Request, res: Response) {
 		})
 		.json({
 			message: "Successfully logged in",
-			data: { access_token: accessToken }
+			data: { accessToken }
 		});
 }
 
@@ -69,7 +70,7 @@ export async function logoutUser(req: Request, res: Response) {
 	const refreshToken = req.signedCookies["REFRESH_TOKEN"];
 
 	if (!refreshToken) {
-		res.status(400).json({ message: "You're not logged in" });
+		res.status(401).json({ message: "You're not logged in" });
 		return;
 	}
 
@@ -78,4 +79,45 @@ export async function logoutUser(req: Request, res: Response) {
 		.clearCookie("REFRESH_TOKEN")
 		.status(200)
 		.json({ message: "Successfully logged out" });
+}
+
+export async function refreshTokens(req: Request, res: Response) {
+	const refreshToken = req.signedCookies["REFRESH_TOKEN"];
+
+	if (!refreshToken) {
+		res.status(401).json({ message: "Missing refresh token" });
+		return;
+	}
+
+	const verifyPromise = verifyRefreshToken(refreshToken);
+	const queryPromise = redisClient.get(`refresh_token:${refreshToken}`);
+	const [jwtPayload, userId] = await Promise.all([verifyPromise, queryPromise]);
+
+	if (!jwtPayload || !userId || jwtPayload.userId !== userId) {
+		res
+			.clearCookie("REFRESH_TOKEN")
+			.status(403)
+			.json({ message: "Invalid refresh token" });
+		return;
+	}
+
+	await redisClient.del(`refresh_token:${refreshToken}`);
+
+	const newAccessToken = await generateAccessToken(userId);
+	const newRefreshToken = await generateRefreshToken(userId);
+
+	res
+		.cookie("REFRESH_TOKEN", newRefreshToken, {
+			httpOnly: true,
+			secure: process.env["NODE_ENV"] === "production",
+			sameSite: true,
+			maxAge:
+				resolveExpirationSec(process.env["JWT_REFRESH_TOKEN_EXP"]!)! * 1000,
+			signed: true
+		})
+		.status(200)
+		.json({
+			message: "Successfully refreshed tokens",
+			data: { accessToken: newAccessToken }
+		});
 }

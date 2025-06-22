@@ -78,3 +78,12 @@ export async function verifyAccessToken(token: string) {
 
 	return result?.payload as { userId: string } | undefined;
 }
+
+export async function verifyRefreshToken(token: string) {
+	const result = await jwtVerify(token, JWT_REFRESH_SECRET, {
+		issuer: JWT_ISS,
+		audience: JWT_AUD
+	}).catch(() => null);
+
+	return result?.payload as { userId: string } | undefined;
+}
