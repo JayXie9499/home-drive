@@ -39,11 +39,7 @@ export async function loginUser(req: Request, res: Response) {
 		return;
 	}
 
-	const accessToken = await generateAccessToken({
-		id: user.id,
-		username: user.username,
-		display_name: user.display_name
-	});
+	const accessToken = await generateAccessToken(user.id);
 	const refreshToken = await generateRefreshToken(user.id).catch((err) => {
 		logger.error("Failed to generate refresh token", err);
 	});

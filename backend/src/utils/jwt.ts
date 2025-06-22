@@ -1,9 +1,12 @@
 import { SignJWT, jwtVerify } from "jose";
-import * as uuid from "uuid";
 import { redisClient } from "./database";
-import { User } from "@shared/types/api";
 
-const JWT_SECRET = new TextEncoder().encode(process.env["JWT_SECRET"]);
+const JWT_ACCESS_SECRET = new TextEncoder().encode(
+	process.env["JWT_ACCESS_SECRET"]
+);
+const JWT_REFRESH_SECRET = new TextEncoder().encode(
+	process.env["JWT_REFRESH_SECRET"]
+);
 const JWT_ISS = process.env["JWT_ISS"] ?? "urn:home-drive:auth";
 const JWT_AUD = process.env["JWT_AUD"] ?? "urn:home-drive:api";
 
@@ -33,18 +36,24 @@ export function resolveExpirationSec(exp: string) {
 	}
 }
 
-export function generateAccessToken(data: Omit<User, "password_hash">) {
-	return new SignJWT(data)
+export function generateAccessToken(userId: string) {
+	return new SignJWT({ userId })
 		.setProtectedHeader({ alg: "HS256" })
 		.setIssuer(JWT_ISS)
 		.setIssuedAt()
 		.setAudience(JWT_AUD)
 		.setExpirationTime(process.env["JWT_ACCESS_TOKEN_EXP"]!)
-		.sign(JWT_SECRET);
+		.sign(JWT_ACCESS_SECRET);
 }
 
 export async function generateRefreshToken(userId: string) {
-	const token = uuid.v4();
+	const token = await new SignJWT({ userId })
+		.setProtectedHeader({ alg: "HS256" })
+		.setIssuer(JWT_ISS)
+		.setIssuedAt()
+		.setAudience(JWT_AUD)
+		.setExpirationTime(process.env["JWT_REFRESH_TOKEN_EXP"]!)
+		.sign(JWT_REFRESH_SECRET);
 	const expTime = resolveExpirationSec(process.env["JWT_REFRESH_TOKEN_EXP"]!);
 
 	if (!expTime) {
@@ -62,10 +71,10 @@ export async function generateRefreshToken(userId: string) {
 }
 
 export async function verifyAccessToken(token: string) {
-	const result = await jwtVerify(token, JWT_SECRET, {
+	const result = await jwtVerify(token, JWT_ACCESS_SECRET, {
 		issuer: JWT_ISS,
 		audience: JWT_AUD
 	}).catch(() => null);
 
-	return result?.payload as Omit<User, "password_hash"> | undefined;
+	return result?.payload as { userId: string } | undefined;
 }
