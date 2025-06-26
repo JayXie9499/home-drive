@@ -5,6 +5,7 @@ import cors from "cors";
 import compression from "compression";
 import cookieParser from "cookie-parser";
 import authRoute from "./routes/authRoute";
+import filesRoute from "./routes/filesRoute";
 import { logger } from "./utils/logger";
 import { initPostgres, initRedis } from "./utils/database";
 import type { NextFunction, Request, Response } from "express";
