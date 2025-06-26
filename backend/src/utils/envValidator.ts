@@ -15,7 +15,8 @@ if (
 	!env["JWT_REFRESH_SECRET"]?.length ||
 	!env["JWT_ACCESS_TOKEN_EXP"]?.length ||
 	!env["JWT_REFRESH_TOKEN_EXP"]?.length ||
-	!env["COOKIE_SECRET"]?.length
+	!env["COOKIE_SECRET"]?.length ||
+	!env["TEMP_STORAGE"]?.length
 ) {
 	logger.error("Setup environment variables properly before starting the app.");
 	process.exit(1);
