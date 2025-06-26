@@ -12,5 +12,5 @@ export interface Item {
   name: string;
   size: number;
   mime?: string;
-  id_folder: boolean;
+  is_folder: boolean;
 }
